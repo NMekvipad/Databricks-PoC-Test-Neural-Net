@@ -1,0 +1,9 @@
+# Excerpt from https://github.com/github/gitignore/blob/main/Python.gitignore on 05-08-2022
+# Exclude Byte-compiled / optimized / DLL files and folders
+__pycache__/
+*.py[cod]
+*$py.class
+artifacts/dataset/
+.idea/
+sandbox/
+artifacts/
