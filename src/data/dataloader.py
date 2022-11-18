@@ -1,6 +1,6 @@
+import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from torch.utils.data.dataloader import default_collate
 from torch.nn.utils.rnn import pad_sequence
 import torch.nn.functional as F
 
@@ -71,17 +71,17 @@ def collate_fn(batch):
 
     for sample in batch:
         (profile, meeting, digital, action, reward), idx = sample
-        profile_data.append(torch.tensor(profile, dtype=torch.double))
-        meeting_data.append(torch.tensor(meeting, dtype=torch.double))
-        digital_data.append(torch.tensor(digital, dtype=torch.double))
-        action_data.append(torch.tensor(action, dtype=torch.double))
-        reward_data.append(reward)
+        profile_data.append(torch.tensor(profile.tolist(), dtype=torch.double))
+        meeting_data.append(torch.tensor(meeting.tolist(), dtype=torch.double))
+        digital_data.append(torch.tensor(digital.tolist(), dtype=torch.double))
+        action_data.append(action.tolist())
+        reward_data.append(reward.tolist())
         ids.append(idx)
 
     profile_data = pad_sequences_to_fixed_length(profile_data, max_len=12)
     meeting_data = pad_sequence(meeting_data, batch_first=True)
     digital_data = pad_sequence(digital_data, batch_first=True)
+    action_data = torch.tensor(action_data)
+    reward_data = torch.tensor(reward_data)
 
-    return (
-               profile_data, meeting_data, digital_data, torch.tensor(action_data), torch.tensor(reward_data).flatten()
-           ), ids
+    return torch.stack(profile_data), meeting_data, digital_data, action_data, reward_data, ids
