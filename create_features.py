@@ -41,13 +41,19 @@ profile_sum = sum_feature(profile_df, sum_cols=[ 'profile_feat_1', 'profile_feat
 # COMMAND ----------
 
 fs = feature_store.FeatureStoreClient()
+fs.drop_table(
+  name='rl_data.rolling_avg_profile'
+)
+fs.drop_table(
+  name='rl_data.sum_profile'
+)
+
 if mode == 'create':
     fs = feature_store.FeatureStoreClient()
     fs.create_table(
         name="rl_data.rolling_avg_profile",
         primary_keys=["ids", "profile_feat_0"],
         df=profile_rolling,
-        partition_columns="ids",
         description="RL model: 3 months rolling average on all columns"
     )
     
@@ -55,7 +61,6 @@ if mode == 'create':
         name="rl_data.sum_profile",
         primary_keys=["ids", "profile_feat_0"],
         df=profile_sum,
-        partition_columns="ids",
         description="RL model: Sum of first 4 columns"
     )
 elif mode == 'update':
