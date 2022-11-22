@@ -1,5 +1,6 @@
 # Databricks notebook source
 import torch
+import tqdm
 import random
 import mlflow
 import mlflow.pytorch
@@ -11,9 +12,10 @@ from src.model.nn import InvSalesCritic
 from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
 
-train_size = 0.6
-validation_size = 0.2
-test_size = 1 - train_size - validation_size
+data_size = 100000
+TRAIN_SIZE = int(0.6 * data_size)
+VALIDATION_SIZE = int(0.2 * data_size)
+TEST_SIZE = int(data_size - TRAIN_SIZE - VALIDATION_SIZE)
 
 # input parameters
 LEARNING_RATE = 0.0001
@@ -21,8 +23,7 @@ MOMENTUM = 0.9
 SCALING_FACTOR = 1
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 NUM_CLASS = 1
-EPOCHS = 100
-TRAIN_SIZE = 100000
+EPOCHS = 10
 BATCH_SIZE = 64
 MODE = 'train'
 MODEL_HYPER_PARAMS = {
@@ -44,7 +45,6 @@ data_config = {
     'digital': {'table_name': 'rl_data.digital_interaction_simulated', 'version': 2},
     'meeting': {'table_name': 'rl_data.meeting_interaction_simulated', 'version': 2}
 }
-
 
 
 # COMMAND ----------
@@ -84,10 +84,7 @@ def train_one_epoch(loader, epoch_index, tb_writer):
     lost_list = list()
     step_no = list()
 
-    train_data = list(loader.values())
-    random.shuffle(train_data)
-
-    for i, batch in enumerate(train_data):
+    for i, batch in enumerate(tqdm.tqdm(loader)):
         cust_profile, meeting_history, campaign_history, actions, rewards, _ = batch  # _, _, _,
         x = [
             cust_profile.div(SCALING_FACTOR).double().to(DEVICE),
@@ -129,7 +126,7 @@ def train_one_epoch(loader, epoch_index, tb_writer):
 def evaluate(loader):
     running_validation_loss = 0.0
 
-    for i, batch in enumerate(loader):
+    for i, batch in enumerate(tqdm.tqdm(loader)):
         cust_profile, meeting_history, campaign_history, actions, rewards, _ = batch
         x = [
             cust_profile.div(SCALING_FACTOR).double().to(DEVICE),
@@ -153,7 +150,7 @@ def predict(loader):
     cust_id = list()
     action_vec = list()
 
-    for i, batch in enumerate(loader):
+    for i, batch in enumerate(tqdm.tqdm(loader)):
         cust_profile, meeting_history, campaign_history, actions, rewards, ids = batch
         x = [
             cust_profile.div(SCALING_FACTOR).double().to(DEVICE),
@@ -174,21 +171,13 @@ def predict(loader):
 
 # COMMAND ----------
 
-model = InvSalesCritic(**MODEL_HYPER_PARAMS)
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
 if __name__ == '__main__':
-    experiment_name = "RL_test"
+    experiment_name = "/Users/odl_user_794888@databrickslabs.com/RL_test"
     mlflow.set_experiment(experiment_name=experiment_name)
     experiment = mlflow.get_experiment_by_name(experiment_name)
-    run_id = run.info.run_id
     
     with mlflow.start_run(experiment_id=experiment.experiment_id) as run:
+        run_id = run.info.run_id
         # Log our parameters into mlflow
         for key, value in MODEL_HYPER_PARAMS.items():
             mlflow.log_param(key, value)
@@ -208,9 +197,9 @@ if __name__ == '__main__':
         
         # convert to pytorch dataset
         dataset = InvSalesData(action_data, digi_data, meeting_data, profile_data, key_column='ids')
-        train_set, validation_set, test_set = random_split(dataset, [train_size, validation_size, test_size])
+        train_set, validation_set, test_set = random_split(dataset=dataset, lengths=[50000, 20000, 30000])
         train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, collate_fn=collate_fn)
-        validation_loader = DataLoader(validation_set, BATCH_SIZE=batch_size, shuffle=True, num_workers=0, collate_fn=collate_fn)
+        validation_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, collate_fn=collate_fn)
         test_loader = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, collate_fn=collate_fn)
 
         out_channel = 1
@@ -239,7 +228,7 @@ if __name__ == '__main__':
             print('EPOCH {}:'.format(epoch_number + 1))
             print('START EPOCH {}:'.format(epoch_number + 1))
 
-            avg_loss = train_one_epoch(train_loader, epoch_number)
+            avg_loss = train_one_epoch(train_loader, epoch_number, writer)
 
             # We don't need gradients for validation performance calculation
             model.train(False)
@@ -253,8 +242,15 @@ if __name__ == '__main__':
 
             log_scalar(
                 tb_writer=writer,
-                name='Training vs. Validation Loss',
-                value={'Training': avg_loss, 'Validation': avg_validation_loss},
+                name='Training Loss',
+                value=avg_loss,
+                step=epoch_number + 1
+            )
+            
+            log_scalar(
+                tb_writer=writer,
+                name='Validation Loss',
+                value=avg_validation_loss,
                 step=epoch_number + 1,
                 flush=True
             )
@@ -266,10 +262,3 @@ if __name__ == '__main__':
                 mlflow.pytorch.log_model(model, '{}_{}_epo_{}'.format(experiment_name, run_id, epoch_number))
 
             epoch_number += 1
-
-
-
-
-
-
-
