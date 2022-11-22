@@ -120,7 +120,7 @@ def train_one_epoch(loader, epoch_index, tb_writer):
             log_scalar(tb_writer, 'Loss/train', last_loss, tb_x)
             running_loss = 0.
 
-    return lost_list, step_no
+    return last_loss
 
 
 def evaluate(loader):
@@ -197,7 +197,7 @@ if __name__ == '__main__':
         
         # convert to pytorch dataset
         dataset = InvSalesData(action_data, digi_data, meeting_data, profile_data, key_column='ids')
-        train_set, validation_set, test_set = random_split(dataset=dataset, lengths=[50000, 20000, 30000])
+        train_set, validation_set, test_set = random_split(dataset=dataset, lengths=[10000, 5000, 85000])
         train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, collate_fn=collate_fn)
         validation_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, collate_fn=collate_fn)
         test_loader = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, collate_fn=collate_fn)
@@ -216,7 +216,7 @@ if __name__ == '__main__':
         # Initiate writer. Adapted from https://pytorch.org/tutorials/beginner/introyt/trainingyt.html
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         epoch_number = 0
-        best_validation_loss = 1_000.
+        best_validation_loss = 1_000_000.
         writer = SummaryWriter('runs/{}_{}'.format(experiment_name, run_id))
 
         print("Start model training")
