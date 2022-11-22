@@ -7,7 +7,7 @@ from databricks import feature_store
 
 # COMMAND ----------
 
-mode = 'create' ## mode can be create or update
+mode = 'update' ## mode can be create or update
 profile_df = spark.sql("""select * from rl_data.profile_simulated""")
 
 # COMMAND ----------
@@ -41,12 +41,12 @@ profile_sum = sum_feature(profile_df, sum_cols=[ 'profile_feat_1', 'profile_feat
 # COMMAND ----------
 
 fs = feature_store.FeatureStoreClient()
-fs.drop_table(
-  name='rl_data.rolling_avg_profile'
-)
-fs.drop_table(
-  name='rl_data.sum_profile'
-)
+#fs.drop_table(
+#  name='rl_data.rolling_avg_profile'
+#)
+#fs.drop_table(
+#  name='rl_data.sum_profile'
+#)
 
 if mode == 'create':
     fs = feature_store.FeatureStoreClient()
