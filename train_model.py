@@ -259,6 +259,6 @@ if __name__ == '__main__':
             if avg_validation_loss < best_validation_loss:
                 best_validation_loss = avg_validation_loss
                 # relpace with mlflow log artifacts                
-                mlflow.pytorch.log_model(model, '{}_{}_epo_{}'.format(experiment_name, run_id, epoch_number))
+                mlflow.pytorch.log_model(model, 'RL_test_{}_epo_{}'.format(run_id, epoch_number))
 
             epoch_number += 1
