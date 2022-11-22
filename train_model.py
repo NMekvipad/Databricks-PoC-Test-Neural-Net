@@ -7,6 +7,7 @@ import mlflow.pytorch
 from mlflow import MlflowClient
 from databricks import feature_store
 from torch.utils.data import DataLoader, random_split
+from torch.utils.utils import read_table, log_scalar
 from src.data.dataloader import InvSalesData, collate_fn
 from src.model.nn import InvSalesCritic
 from datetime import datetime
@@ -49,11 +50,12 @@ data_config = {
 
 # COMMAND ----------
 
-def read_table(data_config):
+def read_table(data_config, log_info=True):
     tables = list()
     for data_name, config in data_config.items():
-        mlflow.set_tag("data_version", config['version'])
-        mlflow.set_tag("data_source", config['table_name'])
+        if log_info:
+            mlflow.set_tag("data_version", config['version'])
+            mlflow.set_tag("data_source", config['table_name'])
         
         df = spark.read.option("versionAsOf", config['version']).table(config['table_name']).toPandas()
         tables.append(df)

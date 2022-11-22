@@ -2,6 +2,7 @@ import yaml
 import torch
 import pandas as pd
 import tqdm
+import mlflow
 import torch.nn.functional as F
 
 
@@ -70,6 +71,35 @@ def read_sql_chunk(sql, con, chunksize=100000):
         dfs.append(df_chunk)
 
     return pd.concat(dfs, axis=0)
+
+
+def read_table(data_config, log_info=True):
+    tables = list()
+    for data_name, config in data_config.items():
+        if log_info:
+            mlflow.set_tag("data_version", config['version'])
+            mlflow.set_tag("data_source", config['table_name'])
+        
+        df = spark.read.option("versionAsOf", config['version']).table(config['table_name']).toPandas()
+        tables.append(df)
+    
+    return tables
+
+
+def log_scalar(tb_writer, name, value, step, flush=False):
+    """Log a scalar value or dictionary of scalar to both MLflow and TensorBoard"""
+
+    if type(value) == dict:
+        tb_writer.add_scalar(name, value, step)
+
+        for key, val in value.items():
+            mlflow.log_metric(key, val, step=step)
+    else:
+        tb_writer.add_scalar(name, value, step)
+        mlflow.log_metric(name, value, step=step)
+
+    if flush:
+        tb_writer.flush()
 
 
 
