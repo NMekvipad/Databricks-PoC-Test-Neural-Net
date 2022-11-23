@@ -8,3 +8,4 @@ artifacts/dataset/
 sandbox/
 artifacts/
 runs/
+pre_trained_model/
