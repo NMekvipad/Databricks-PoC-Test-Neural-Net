@@ -1,8 +1,0 @@
-run_environment:
-input_server:
-input_db:
-schema:
-output_server:
-profile_table_name:
-campaign_table_name:
-meeting_table_name:
